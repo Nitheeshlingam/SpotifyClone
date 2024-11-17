@@ -17,13 +17,14 @@ function convertSecondsToMinutes(seconds) {
 
   return `${formattedMinutes}:${formattedSeconds}`;
 }
+
 async function getSongs(folder) {
   songs = []; // Move songs declaration to the correct scope
 
   try {
     // Fetch the HTML content from the given URL
     currFolder = folder;
-    let songsData = await fetch(`./${folder}/`);
+    let songsData = await fetch(`${window.location.origin}/${folder}/`);
 
     // Check if the fetch was successful
     if (!songsData.ok) {
@@ -130,9 +131,10 @@ async function getSongs(folder) {
 
   return songs;
 }
+
 const playMusic = (track, pause = false) => {
   // let audio = new Audio("/songs/"+track);
-  currentSong.src = `/${currFolder}/` + track;
+  currentSong.src = `${window.location.origin}/${currFolder}/${track}`;
   if (!pause) {
     currentSong.play();
     play.src = "svg/pause.svg";
@@ -142,7 +144,9 @@ const playMusic = (track, pause = false) => {
 };
 
 async function displayAlbums() {
-  let songsData = await fetch(`./songs/`);
+  let songsData = await fetch(
+    `${window.location.origin}/songs/${folder}/info.json`
+  );
   let response = await songsData.text();
   let div = document.createElement("div");
   div.innerHTML = response;
@@ -187,7 +191,7 @@ async function displayAlbums() {
             </div>`;
     }
   }
-  //intially playbar none
+  // Initially playbar none
 
   Array.from(document.getElementsByClassName("card")).forEach((e) => {
     e.addEventListener("click", async (item) => {
@@ -207,7 +211,7 @@ async function main() {
   await getSongs("songs/ATrending Now");
   playMusic(songs[0], true);
 
-  //Display all the album on the page
+  // Display all the albums on the page
   displayAlbums();
 
   play.addEventListener("click", () => {
@@ -227,102 +231,20 @@ async function main() {
       let duration = audio.duration;
       console.log(audio.duration, audio.currentSrc, audio.currentTime);
     });
-  } else {
-    console.log("No songs found.");
-  }
 
-  //attach an eventlistener to song duration
-
-  currentSong.addEventListener("timeupdate", () => {
-    const currentTime = currentSong.currentTime;
-    const duration = currentSong.duration;
-
-    const formattedCurrentTime = isNaN(currentTime)
-      ? "00:00"
-      : convertSecondsToMinutes(currentTime);
-    const formattedDuration = isNaN(duration)
-      ? "00:00"
-      : convertSecondsToMinutes(duration);
-
-    console.log(currentTime, duration);
-    document.querySelector(
-      ".songtime"
-    ).innerHTML = `${formattedCurrentTime} / ${formattedDuration}`;
-    document.querySelector(".circle").style.left =
-      (currentSong.currentTime / currentSong.duration) * 100 + "%";
-  });
-
-  document.querySelector(".seekbar").addEventListener("click", (e) => {
-    let percent = (e.offsetX / e.target.getBoundingClientRect().width) * 100;
-    document.querySelector(".circle").style.left = percent + "%";
-    currentSong.currentTime = (currentSong.duration * percent) / 100;
-  });
-
-  document.querySelector(".hamburger").addEventListener("click", () => {
-    document.querySelector(".left").style.left = "0";
-  });
-
-  document.querySelector(".close").addEventListener("click", () => {
-    document.querySelector(".left").style.left = "-130%";
-  });
-
-  // Add an event listener to previous
-  previous.addEventListener("click", () => {
-    currentSong.pause();
-    console.log("Previous clicked");
-    let index = songs.indexOf(currentSong.src.split("/").slice(-1)[0]);
-    if (index - 1 >= 0) {
-      playMusic(songs[index - 1]);
-    } else {
-      currentSong.pause();
-      play.src = "svg/playsong.svg";
-    }
-  });
-
-  // Add an event listener to next
-  next.addEventListener("click", () => {
-    currentSong.pause();
-    console.log("Next clicked");
-
-    let index = songs.indexOf(currentSong.src.split("/").slice(-1)[0]);
-    if (index + 1 < songs.length) {
-      playMusic(songs[index + 1]);
-    } else {
-      currentSong.pause();
-      play.src = "svg/playsong.svg";
-    }
-  });
-
-  // Add an event to volume
-  document
-    .querySelector(".range")
-    .getElementsByTagName("input")[0]
-    .addEventListener("change", (e) => {
-      console.log("Setting volume to", e.target.value, "/ 100");
-      currentSong.volume = parseInt(e.target.value) / 100;
-      if (currentSong.volume > 0) {
-        document.querySelector(".volume>img").src = document
-          .querySelector(".volume>img")
-          .src.replace("svg/mute.svg", "svg/volume.svg");
-      }
+    currentSong.addEventListener("timeupdate", () => {
+      let currentTime = convertSecondsToMinutes(currentSong.currentTime);
+      let duration = convertSecondsToMinutes(currentSong.duration);
+      document.querySelector(".songtime").innerHTML =
+        currentTime + " / " + duration;
+      document
+        .querySelector(".progress-bar")
+        .setAttribute("value", currentSong.currentTime);
+      document
+        .querySelector(".progress-bar")
+        .setAttribute("max", currentSong.duration);
     });
-
-  // Add event listener to mute the track
-  document.querySelector(".volume>img").addEventListener("click", (e) => {
-    if (e.target.src.includes("svg/volume.svg")) {
-      e.target.src = e.target.src.replace("svg/volume.svg", "svg/mute.svg");
-      currentSong.volume = 0;
-      document
-        .querySelector(".range")
-        .getElementsByTagName("input")[0].value = 0;
-    } else {
-      e.target.src = e.target.src.replace("svg/mute.svg", "svg/volume.svg");
-      currentSong.volume = 0.1;
-      document
-        .querySelector(".range")
-        .getElementsByTagName("input")[0].value = 10;
-    }
-  });
+  }
 }
 
 main();
